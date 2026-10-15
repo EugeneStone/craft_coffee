@@ -68,19 +68,16 @@ function fmtDayShort(iso: string) {
   return `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
 }
 
-function buildBuckets(byDay: Metrics['byDay'], period: Period): { buckets: Bucket[]; scroll: boolean } {
+function buildBuckets(byDay: Metrics['byDay'], period: Period): Bucket[] {
   if (period !== 'all') {
-    return {
-      scroll: false,
-      buckets: byDay.map((d) => ({
-        key: d.day,
-        label: fmtDayShort(d.day),
-        tooltip: `${fmtDay(d.day)}: ${bucketTotal(d)}`,
-        instagram: d.instagram,
-        yandex: d.yandex,
-        none: d.none,
-      })),
-    };
+    return byDay.map((d) => ({
+      key: d.day,
+      label: fmtDayShort(d.day),
+      tooltip: `${fmtDay(d.day)}: ${bucketTotal(d)}`,
+      instagram: d.instagram,
+      yandex: d.yandex,
+      none: d.none,
+    }));
   }
 
   const byMonth = new Map<string, { instagram: number; yandex: number; none: number }>();
@@ -103,7 +100,7 @@ function buildBuckets(byDay: Metrics['byDay'], period: Period): { buckets: Bucke
       ...v,
     };
   });
-  return { scroll: true, buckets };
+  return buckets;
 }
 
 function ChartColumn({
@@ -165,7 +162,7 @@ export default function AdminMetricsPage() {
   }, [load]);
 
   const view = metrics ? buildBuckets(metrics.byDay, period) : null;
-  const maxDay = view ? Math.max(...view.buckets.map(bucketTotal), 1) : 1;
+  const maxDay = view ? Math.max(...view.map(bucketTotal), 1) : 1;
 
   return (
     <div>
@@ -249,25 +246,29 @@ export default function AdminMetricsPage() {
                 За этот период заявок нет — диаграмма появится, как только
                 придёт первая.
               </p>
-            ) : view.scroll ? (
+            ) : (
               <div className="scroll-thin mt-5 overflow-x-auto pb-2">
                 <div className="min-w-max px-1">
-                  <div className="flex h-44 items-end gap-2">
-                    {view.buckets.map((b) => (
+                  <div className="flex h-44 items-end gap-1">
+                    {view.map((b) => (
                       <ChartColumn
                         key={b.key}
                         bucket={b}
                         maxDay={maxDay}
-                        className="flex h-full w-14 shrink-0 items-end justify-center"
-                        barClassName="w-3"
+                        className={`flex h-full shrink-0 items-end justify-center ${
+                          period === 'all' ? 'w-14' : 'w-8'
+                        }`}
+                        barClassName={period === 'all' ? 'w-3' : 'w-2.5'}
                       />
                     ))}
                   </div>
-                  <div className="mt-2 flex gap-2" aria-hidden="true">
-                    {view.buckets.map((b) => (
+                  <div className="mt-2 flex gap-1" aria-hidden="true">
+                    {view.map((b) => (
                       <span
                         key={b.key}
-                        className="w-14 shrink-0 text-center text-[11px] leading-4 whitespace-nowrap text-espresso-400"
+                        className={`shrink-0 text-center text-[11px] leading-4 whitespace-nowrap text-espresso-400 ${
+                          period === 'all' ? 'w-14' : 'w-8'
+                        }`}
                       >
                         {b.label}
                       </span>
@@ -275,57 +276,6 @@ export default function AdminMetricsPage() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <>
-                <div className="mt-5 flex h-44 items-end gap-0.5 sm:gap-1">
-                  {view.buckets.map((b) => (
-                    <ChartColumn
-                      key={b.key}
-                      bucket={b}
-                      maxDay={maxDay}
-                      className="flex h-full min-w-0 flex-1 items-end justify-center"
-                      barClassName="w-2.5"
-                    />
-                  ))}
-                </div>
-                <div className="mt-2">
-                  {view.buckets.length > 10
-                    ? [0, 1].map((row) => (
-                        // шахматные подписи: каждая дата на своём месте,
-                        // соседние даты в строке через 2 ячейки — не налазят
-                        <div key={row} className="flex h-4 gap-0.5 sm:gap-1">
-                          {view.buckets.map((b, i) => (
-                            <span
-                              key={b.key}
-                              aria-hidden="true"
-                              className="relative h-4 min-w-0 flex-1 text-[11px] text-espresso-400"
-                            >
-                              {i % 2 === row && (
-                                <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
-                                  {b.label}
-                                </span>
-                              )}
-                            </span>
-                          ))}
-                        </div>
-                      ))
-                    : (
-                        <div className="flex h-4 gap-0.5 sm:gap-1">
-                          {view.buckets.map((b) => (
-                            <span
-                              key={b.key}
-                              aria-hidden="true"
-                              className="relative h-4 min-w-0 flex-1 text-[11px] text-espresso-400"
-                            >
-                              <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
-                                {b.label}
-                              </span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                </div>
-              </>
             )}
             <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               {SOURCES.map((s) => (
