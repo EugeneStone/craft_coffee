@@ -75,7 +75,22 @@ button:not(:disabled),
   background-color: var(--color-espresso-500);
 }
 
-/* Рисованные чашки: пар поднимается, большая чашка в подписке покачивается */@keyframes kv-steam {
+/* Появление блоков при прокрутке: Reveal вешает reveal-shown, когда блок в кадре */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-shown {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Рисованные чашки: пар поднимается, большая чашка в подписке покачивается */
+@keyframes kv-steam {
   0% {
     transform: translateY(6px);
     opacity: 0;
@@ -125,5 +140,10 @@ button:not(:disabled),
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
