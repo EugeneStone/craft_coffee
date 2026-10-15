@@ -106,13 +106,6 @@ export default function OrderForm() {
     }
   }
 
-  function reset() {
-    setStatus('idle');
-    setResultMessage('');
-    setServerError('');
-    setFieldErrors({});
-  }
-
   if (status === 'success') {
     return (
       <div
@@ -124,13 +117,6 @@ export default function OrderForm() {
           Заявка у нас <span aria-hidden="true">☕</span>
         </p>
         <p className="mt-3 leading-relaxed text-espresso-700">{resultMessage}</p>
-        <button
-          type="button"
-          onClick={reset}
-          className="mt-6 rounded-full border border-espresso-900 px-6 py-2.5 text-sm font-semibold text-espresso-900 transition-colors hover:bg-espresso-900 hover:text-cream-50"
-        >
-          Отправить ещё одну
-        </button>
       </div>
     );
   }
