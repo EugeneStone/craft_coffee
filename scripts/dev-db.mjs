@@ -26,11 +26,20 @@ async function main() {
     await pg.initialise();
   }
   await pg.start();
+  // CREATE DATABASE не умеет IF NOT EXISTS — сперва проверяем, что базы ещё нет,
+  // иначе Postgres печатает в лог ERROR при каждом запуске
+  const bootClient = pg.getPgClient();
+  await bootClient.connect();
   try {
-    await pg.createDatabase('kvarta');
-    console.log('[db] база kvarta создана');
-  } catch {
-    // база уже есть — это нормально при повторном запуске
+    const exists = await bootClient.query(
+      "SELECT 1 FROM pg_database WHERE datname = 'kvarta'",
+    );
+    if (exists.rowCount === 0) {
+      await pg.createDatabase('kvarta');
+      console.log('[db] база kvarta создана');
+    }
+  } finally {
+    await bootClient.end();
   }
   console.log(`[db] postgres://kvarta:kvarta@localhost:${port}/kvarta`);
 

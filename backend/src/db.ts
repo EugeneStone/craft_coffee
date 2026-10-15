@@ -141,6 +141,29 @@ async function seed(): Promise<void> {
 }
 
 export async function initDb(): Promise<void> {
-  await pool.query(schema);
-  await seed();
+  // при холодном `npm run dev` база и API стартуют одновременно, а Postgres
+  // после жёсткого выключения ещё делает recovery — ждём его до 30 секунд
+  const maxAttempts = 30;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await pool.query(schema);
+      await seed();
+      return;
+    } catch (e) {
+      if (attempt >= maxAttempts || !isDbNotReady(e)) throw e;
+      if (attempt === 1) {
+        console.log('[api] база ещё не готова — жду, повторяю подключение');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+}
+
+function isDbNotReady(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const code = (e as NodeJS.ErrnoException).code ?? '';
+  if (['ECONNREFUSED', 'ETIMEDOUT', '57P03'].includes(code)) return true;
+  if (/starting up/i.test(e.message)) return true;
+  const nested = (e as { errors?: unknown[] }).errors;
+  return Array.isArray(nested) && nested.some(isDbNotReady);
 }
