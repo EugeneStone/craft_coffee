@@ -1,5 +1,5 @@
 import OrderButton from './OrderButton';
-import CoffeeGirl from './CoffeeGirl';
+import CoffeeCup from './CoffeeCup';
 
 const PRODUCTS = [
   {
@@ -119,8 +119,8 @@ export default function Products() {
                   </OrderButton>
                 </div>
               </div>
-              <div aria-hidden="true" className="-mb-6 -mr-2 w-32 shrink-0 self-end sm:-mb-8 sm:-mr-4 sm:w-36 lg:w-44">
-                <CoffeeGirl />
+              <div aria-hidden="true" className="-mb-6 -mr-2 w-32 shrink-0 self-end sm:-mb-8 sm:-mr-4 sm:w-36 lg:w-40">
+                <CoffeeCup tone="dark" className="kv-float" />
               </div>
             </article>
           </li>

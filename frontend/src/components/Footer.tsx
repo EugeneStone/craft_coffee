@@ -1,4 +1,5 @@
 import Bean from './Bean';
+import CoffeeCup from './CoffeeCup';
 
 export default function Footer() {
   return (
@@ -48,7 +49,10 @@ export default function Footer() {
 
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-5 text-xs text-cream-200/50 sm:px-6">
-          <p>© {new Date().getFullYear()} Кварта</p>
+          <p className="flex items-center gap-2">
+            © {new Date().getFullYear()} Кварта
+            <CoffeeCup tone="dark" animated={false} className="h-6 w-6" />
+          </p>
           <p>Телефон и почта — заглушки из тестового задания.</p>
         </div>
       </div>

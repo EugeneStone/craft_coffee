@@ -1,4 +1,5 @@
 import OrderForm from './OrderForm';
+import CoffeeCup from './CoffeeCup';
 
 export default function OrderSection() {
   return (
@@ -24,6 +25,9 @@ export default function OrderSection() {
             <li>Помол под ваш способ заваривания — бесплатно</li>
             <li>Если что-то не понравится — скажите, заменим партию</li>
           </ul>
+          <div aria-hidden="true" className="mt-8 w-20 sm:w-24">
+            <CoffeeCup tone="light" />
+          </div>
         </div>
 
         <OrderForm />
