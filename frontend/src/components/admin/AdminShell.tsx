@@ -7,6 +7,7 @@ import { apiJson } from '@/lib/admin';
 
 const NAV = [
   { href: '/admin', label: 'Заявки' },
+  { href: '/admin/metrics', label: 'Метрики' },
   { href: '/admin/subscriptions', label: 'Подписки' },
   { href: '/admin/products', label: 'Зерно' },
   { href: '/admin/settings', label: 'Условия подписки' },

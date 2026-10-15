@@ -380,6 +380,77 @@ adminRouter.patch(
   }),
 );
 
+/* ---------------- метрики заявок ---------------- */
+
+type SourceBucket = 'instagram' | 'yandex' | 'none';
+const BUCKETS: SourceBucket[] = ['instagram', 'yandex', 'none'];
+
+function emptyBucket(): Record<SourceBucket, number> {
+  return { instagram: 0, yandex: 0, none: 0 };
+}
+
+adminRouter.get(
+  '/metrics',
+  requireAdmin,
+  wrap(async (req, res) => {
+    const daysParam = String(req.query.days ?? '30');
+    const all = daysParam === 'all';
+    const days = all ? null : [7, 30].includes(Number(daysParam)) ? Number(daysParam) : 30;
+    const where = days ? 'WHERE created_at > now() - make_interval(days => $1)' : '';
+    const params = days ? [days] : [];
+
+    const totalsRows = await pool.query<{ src: SourceBucket; n: number }>(
+      `SELECT COALESCE(source, 'none') src, count(*)::int n
+       FROM leads ${where} GROUP BY 1`,
+      params,
+    );
+    const totals = emptyBucket();
+    for (const row of totalsRows.rows) totals[row.src] = row.n;
+    const total = BUCKETS.reduce((sum, b) => sum + totals[b], 0);
+
+    const byDayRows = await pool.query<{
+      day: string;
+      src: SourceBucket;
+      n: number;
+    }>(
+      `SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+              COALESCE(source, 'none') AS src, count(*)::int AS n
+       FROM leads ${where}
+       GROUP BY 1, 2 ORDER BY 1`,
+      params,
+    );
+    const byDayMap = new Map<string, Record<SourceBucket, number>>();
+    for (const row of byDayRows.rows) {
+      const bucket = byDayMap.get(row.day) ?? emptyBucket();
+      bucket[row.src] = row.n;
+      byDayMap.set(row.day, bucket);
+    }
+
+    // дни без заявок заполняем нулями, чтобы диаграмма была непрерывной;
+    // за «всё время» показываем последние 90 дней, итоги считаем по всему периоду
+    const today = new Date();
+    const firstDay =
+      byDayRows.rows[0]?.day ??
+      today.toISOString().slice(0, 10);
+    const start = days
+      ? new Date(today)
+      : new Date(`${firstDay}T00:00:00Z`);
+    if (days) start.setUTCDate(start.getUTCDate() - (days - 1));
+    const byDay: { day: string; instagram: number; yandex: number; none: number }[] = [];
+    for (const d = start; d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      byDay.push({ day: key, ...(byDayMap.get(key) ?? emptyBucket()) });
+    }
+
+    res.json({
+      ok: true,
+      totals,
+      total,
+      byDay: byDay.slice(-90),
+    });
+  }),
+);
+
 /* ---------------- условия подписки ---------------- */
 
 const SETTINGS_KEYS = ['sub_title', 'sub_description', 'sub_price'] as const;
