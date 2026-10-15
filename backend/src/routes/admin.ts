@@ -99,6 +99,10 @@ adminRouter.get(
     )
       ? String(req.query.interest)
       : null;
+    const PAGE_SIZE = 20;
+    const pageRaw = Number(req.query.page);
+    const page =
+      Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
 
     const where: string[] = [];
     const params: unknown[] = [];
@@ -110,18 +114,27 @@ adminRouter.get(
       params.push(interest);
       where.push(`interest = $${params.length}`);
     }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const totalRes = await pool.query<{ total: number }>(
+      `SELECT count(*)::int AS total FROM leads ${whereSql}`,
+      params,
+    );
+    const total = totalRes.rows[0].total;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(page, pages);
 
     const rows = await pool.query(
       `SELECT id, name, phone, interest, comment, status, source,
               utm_source, utm_medium, utm_campaign, utm_content, utm_term,
               referrer, page_url, created_at
        FROM leads
-       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+       ${whereSql}
        ORDER BY created_at DESC
-       LIMIT 500`,
-      params,
+       LIMIT ${PAGE_SIZE} OFFSET $${params.length + 1}`,
+      [...params, (safePage - 1) * PAGE_SIZE],
     );
-    res.json({ ok: true, leads: rows.rows });
+    res.json({ ok: true, leads: rows.rows, total, page: safePage, pages });
   }),
 );
 

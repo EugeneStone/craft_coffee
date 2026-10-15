@@ -38,6 +38,9 @@ const INTEREST_FILTERS: { value: Interest | 'all'; label: string }[] = [
 export default function AdminLeadsPage() {
   const [status, setStatus] = useState<LeadStatus>('new');
   const [interest, setInterest] = useState<Interest | 'all'>('all');
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -45,20 +48,38 @@ export default function AdminLeadsPage() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const params = new URLSearchParams({ status });
+      const params = new URLSearchParams({ status, page: String(page) });
       if (interest !== 'all') params.set('interest', interest);
-      const data = await apiJson<{ leads: Lead[] }>(`/api/admin/leads?${params}`);
+      const data = await apiJson<{
+        leads: Lead[];
+        total: number;
+        page: number;
+        pages: number;
+      }>(`/api/admin/leads?${params}`);
       setLeads(data.leads);
+      setTotal(data.total);
+      setPages(data.pages);
+      setPage(data.page);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось загрузить заявки.');
       setLeads([]);
     }
-  }, [status, interest]);
+  }, [status, interest, page]);
 
   useEffect(() => {
     setLeads(null);
     void load();
   }, [load]);
+
+  function switchStatus(next: LeadStatus) {
+    setStatus(next);
+    setPage(1);
+  }
+
+  function switchInterest(next: Interest | 'all') {
+    setInterest(next);
+    setPage(1);
+  }
 
   async function patchStatus(lead: Lead, next: LeadStatus) {
     setBusyId(lead.id);
@@ -110,7 +131,7 @@ export default function AdminLeadsPage() {
             <button
               key={tab.value}
               type="button"
-              onClick={() => setStatus(tab.value)}
+              onClick={() => switchStatus(tab.value)}
               aria-pressed={status === tab.value}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                 status === tab.value
@@ -129,7 +150,7 @@ export default function AdminLeadsPage() {
           <button
             key={f.value}
             type="button"
-            onClick={() => setInterest(f.value)}
+            onClick={() => switchInterest(f.value)}
             aria-pressed={interest === f.value}
             className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
               interest === f.value
@@ -234,6 +255,40 @@ export default function AdminLeadsPage() {
             </li>
           ))}
         </ul>
+      )}
+      {pages > 1 && (
+        <nav
+          aria-label="Страницы заявок"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3"
+        >
+          <p className="text-sm text-espresso-500">
+            Всего {total} · страница {page} из {pages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => {
+                setPage(page - 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="rounded-full border border-espresso-800 px-4 py-2 text-sm font-semibold text-espresso-900 transition-colors hover:bg-cream-100 disabled:opacity-40"
+            >
+              Назад
+            </button>
+            <button
+              type="button"
+              disabled={page >= pages}
+              onClick={() => {
+                setPage(page + 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="rounded-full bg-espresso-900 px-4 py-2 text-sm font-semibold text-cream-50 transition-colors hover:bg-espresso-800 disabled:opacity-40"
+            >
+              Вперёд
+            </button>
+          </div>
+        </nav>
       )}
     </div>
   );
