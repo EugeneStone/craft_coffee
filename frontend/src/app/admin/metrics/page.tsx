@@ -3,23 +3,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiJson } from '@/lib/admin';
 
-type Bucket = 'instagram' | 'yandex' | 'none';
+type SourceKey = 'instagram' | 'yandex' | 'none';
 
 type Metrics = {
-  totals: Record<Bucket, number>;
+  totals: Record<SourceKey, number>;
   total: number;
   byDay: { day: string; instagram: number; yandex: number; none: number }[];
 };
 
 type Period = '7' | '30' | 'all';
 
-const SOURCES: {
-  key: Bucket;
+type Bucket = {
+  key: string;
   label: string;
-  card: string;
-  bar: string;
-  dot: string;
-}[] = [
+  tooltip: string;
+  instagram: number;
+  yandex: number;
+  none: number;
+};
+
+const SOURCES: { key: SourceKey; label: string; card: string; bar: string; dot: string }[] = [
   {
     key: 'instagram',
     label: 'Instagram',
@@ -30,9 +33,9 @@ const SOURCES: {
   {
     key: 'yandex',
     label: 'Яндекс',
-    card: 'border-terra-300 bg-terra-50',
-    bar: 'bg-terra-500',
-    dot: 'bg-terra-500',
+    card: 'border-red-200 bg-red-50',
+    bar: 'bg-red-500',
+    dot: 'bg-red-500',
   },
   {
     key: 'none',
@@ -49,10 +52,114 @@ const PERIODS: { value: Period; label: string; sub: string }[] = [
   { value: 'all', label: 'Всё время', sub: 'за всё время' },
 ];
 
-const dayFmt = new Intl.DateTimeFormat('ru-RU', {
-  day: 'numeric',
-  month: 'short',
-});
+const dayFmt = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' });
+const monthShortFmt = new Intl.DateTimeFormat('ru-RU', { month: 'short' });
+const monthLongFmt = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' });
+
+const bucketTotal = (b: { instagram: number; yandex: number; none: number }) =>
+  b.instagram + b.yandex + b.none;
+
+function fmtDay(iso: string) {
+  return dayFmt.format(new Date(`${iso}T00:00:00`));
+}
+
+function sumChunk(chunk: Metrics['byDay']) {
+  return {
+    instagram: chunk.reduce((s, d) => s + d.instagram, 0),
+    yandex: chunk.reduce((s, d) => s + d.yandex, 0),
+    none: chunk.reduce((s, d) => s + d.none, 0),
+  };
+}
+
+function buildBuckets(byDay: Metrics['byDay'], period: Period): { buckets: Bucket[]; scroll: boolean } {
+  if (period === '7') {
+    return {
+      scroll: false,
+      buckets: byDay.map((d) => ({
+        key: d.day,
+        label: fmtDay(d.day),
+        tooltip: `${fmtDay(d.day)}: ${bucketTotal(d)}`,
+        instagram: d.instagram,
+        yandex: d.yandex,
+        none: d.none,
+      })),
+    };
+  }
+
+  if (period === '30') {
+    // 4 недельных столбца; размер недели = 30/4 с округлением вверх,
+    // хвост уходит в последнюю неделю
+    const size = Math.ceil(byDay.length / 4);
+    const buckets: Bucket[] = [];
+    for (let i = 0; i < byDay.length; i += size) {
+      const chunk = byDay.slice(i, i + size);
+      const first = chunk[0];
+      const last = chunk[chunk.length - 1];
+      const range = `${fmtDay(first.day)} – ${fmtDay(last.day)}`;
+      buckets.push({
+        key: first.day,
+        label: fmtDay(first.day),
+        tooltip: `${range}: ${bucketTotal(sumChunk(chunk))}`,
+        ...sumChunk(chunk),
+      });
+    }
+    return { scroll: false, buckets };
+  }
+
+  const byMonth = new Map<string, { instagram: number; yandex: number; none: number }>();
+  for (const d of byDay) {
+    const key = d.day.slice(0, 7);
+    const acc = byMonth.get(key) ?? { instagram: 0, yandex: 0, none: 0 };
+    acc.instagram += d.instagram;
+    acc.yandex += d.yandex;
+    acc.none += d.none;
+    byMonth.set(key, acc);
+  }
+  const currentYear = new Date().getFullYear();
+  const buckets = [...byMonth.entries()].map(([key, v]) => {
+    const date = new Date(`${key}-01T00:00:00`);
+    const year = date.getFullYear();
+    return {
+      key,
+      label: year === currentYear ? monthShortFmt.format(date) : `${monthShortFmt.format(date)} ${year}`,
+      tooltip: `${monthLongFmt.format(date)}: ${bucketTotal(v)}`,
+      ...v,
+    };
+  });
+  return { scroll: true, buckets };
+}
+
+function ChartColumn({
+  bucket,
+  maxDay,
+  className,
+}: {
+  bucket: Bucket;
+  maxDay: number;
+  className: string;
+}) {
+  const n = bucketTotal(bucket);
+  return (
+    <div className={className} title={n > 0 ? bucket.tooltip : undefined}>
+      {n > 0 && (
+        <div
+          className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
+          style={{ height: `${(n / maxDay) * 100}%` }}
+        >
+          {SOURCES.map((s) =>
+            bucket[s.key] > 0 ? (
+              <div
+                key={s.key}
+                className={`w-full ${s.bar}`}
+                style={{ height: `${(bucket[s.key] / n) * 100}%` }}
+              />
+            ) : null,
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminMetricsPage() {
   const [period, setPeriod] = useState<Period>('30');
@@ -74,9 +181,8 @@ export default function AdminMetricsPage() {
     void load();
   }, [load]);
 
-  const maxDay = metrics
-    ? Math.max(...metrics.byDay.map((d) => d.instagram + d.yandex + d.none), 1)
-    : 1;
+  const view = metrics ? buildBuckets(metrics.byDay, period) : null;
+  const maxDay = view ? Math.max(...view.buckets.map(bucketTotal), 1) : 1;
 
   return (
     <div>
@@ -113,7 +219,7 @@ export default function AdminMetricsPage() {
         </p>
       )}
 
-      {metrics === null ? (
+      {metrics === null || view === null ? (
         <p className="mt-8 animate-pulse text-espresso-500">Считаем…</p>
       ) : (
         <>
@@ -153,85 +259,84 @@ export default function AdminMetricsPage() {
 
           <section className="mt-8 rounded-2xl border border-cream-200 bg-white p-5 sm:p-6">
             <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-espresso-500">
-              По дням
+              {period === '30'
+                ? 'По неделям'
+                : period === 'all'
+                  ? 'По месяцам'
+                  : 'По дням'}
             </h2>
             {metrics.total === 0 ? (
               <p className="mt-6 text-espresso-500">
                 За этот период заявок нет — диаграмма появится, как только
                 придёт первая.
               </p>
+            ) : view.scroll ? (
+              <div className="scroll-thin mt-5 overflow-x-auto pb-2">
+                <div className="min-w-max px-1">
+                  <div className="flex h-44 items-end gap-2">
+                    {view.buckets.map((b) => (
+                      <ChartColumn
+                        key={b.key}
+                        bucket={b}
+                        maxDay={maxDay}
+                        className="flex h-full w-16 shrink-0 items-end"
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2 flex gap-2" aria-hidden="true">
+                    {view.buckets.map((b) => (
+                      <span
+                        key={b.key}
+                        className="w-16 shrink-0 text-center text-[10px] leading-4 whitespace-nowrap text-espresso-400"
+                      >
+                        {b.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ) : (
               <>
-                <div className="mt-5 flex h-44 items-end gap-1 sm:gap-1.5">
-                  {metrics.byDay.map((d) => {
-                    const dayTotal = d.instagram + d.yandex + d.none;
-                    const h = (n: number) => `${(n / maxDay) * 100}%`;
-                    const seg = (n: number) => `${(n / dayTotal) * 100}%`;
-                    return (
-                      <div
-                        key={d.day}
-                        className="flex h-full min-w-0 flex-1 items-end"
-                        title={`${dayFmt.format(new Date(`${d.day}T00:00:00`))}: ${dayTotal}`}
-                      >
-                        {dayTotal > 0 && (
-                          <div
-                            className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
-                            style={{ height: h(dayTotal) }}
-                          >
-                            {d.instagram > 0 && (
-                              <div className={`w-full ${SOURCES[0].bar}`} style={{ height: seg(d.instagram) }} />
-                            )}
-                            {d.yandex > 0 && (
-                              <div className={`w-full ${SOURCES[1].bar}`} style={{ height: seg(d.yandex) }} />
-                            )}
-                            {d.none > 0 && (
-                              <div className={`w-full ${SOURCES[2].bar}`} style={{ height: seg(d.none) }} />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="mt-5 flex h-44 items-end justify-center gap-1.5 sm:gap-2">
+                  {view.buckets.map((b) => (
+                    <ChartColumn
+                      key={b.key}
+                      bucket={b}
+                      maxDay={maxDay}
+                      className={`flex h-full min-w-0 flex-1 items-end ${
+                        period === '30' ? 'max-w-[56px]' : 'max-w-[18px]'
+                      }`}
+                    />
+                  ))}
                 </div>
-                <div className="mt-2 flex h-4 gap-1 sm:gap-1.5">
-                  {metrics.byDay.map((d, i) => {
-                    const n = metrics.byDay.length;
-                    const step = n <= 10 ? 1 : Math.ceil(n / 6);
-                    const show = i % step === 0 || i === n - 1;
-                    const pos =
-                      i === 0
-                        ? 'left-0'
-                        : i === n - 1
-                          ? 'right-0'
-                          : 'left-1/2 -translate-x-1/2';
-                    return (
-                      <span
-                        key={d.day}
-                        aria-hidden={!show}
-                        className="relative h-4 min-w-0 flex-1 text-[10px] text-espresso-400"
-                      >
-                        {show && (
-                          <span className={`absolute whitespace-nowrap ${pos}`}>
-                            {dayFmt.format(new Date(`${d.day}T00:00:00`))}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
-                  {SOURCES.map((s) => (
-                    <p
-                      key={s.key}
-                      className="flex items-center gap-2 text-xs text-espresso-600"
+                <div className="mt-2 flex h-4 justify-center gap-1.5 sm:gap-2">
+                  {view.buckets.map((b) => (
+                    <span
+                      key={b.key}
+                      aria-hidden="true"
+                      className={`relative h-4 min-w-0 flex-1 text-[10px] text-espresso-400 ${
+                        period === '30' ? 'max-w-[56px]' : 'max-w-[18px]'
+                      }`}
                     >
-                      <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${s.dot}`} />
-                      {s.label}
-                    </p>
+                      <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
+                        {b.label}
+                      </span>
+                    </span>
                   ))}
                 </div>
               </>
             )}
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+              {SOURCES.map((s) => (
+                <p
+                  key={s.key}
+                  className="flex items-center gap-2 text-xs text-espresso-600"
+                >
+                  <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${s.dot}`} />
+                  {s.label}
+                </p>
+              ))}
+            </div>
           </section>
         </>
       )}

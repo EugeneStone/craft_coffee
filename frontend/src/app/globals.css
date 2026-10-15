@@ -52,8 +52,30 @@ button:not(:disabled),
   cursor: pointer;
 }
 
-/* Рисованные чашки: пар поднимается, большая чашка в подписке покачивается */
-@keyframes kv-steam {
+/* Тонкий скроллбар для горизонтальной прокрутки графика метрик */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-espresso-400) transparent;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background-color: var(--color-espresso-400);
+}
+
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-espresso-500);
+}
+
+/* Рисованные чашки: пар поднимается, большая чашка в подписке покачивается */@keyframes kv-steam {
   0% {
     transform: translateY(6px);
     opacity: 0;
