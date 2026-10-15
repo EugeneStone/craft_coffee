@@ -37,7 +37,13 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" className={`${lora.variable} ${manrope.variable}`}>
+    // расширения вроде тёмной темы дописывают атрибуты в <html> до гидратации —
+    // глушим их расхождение, свои атрибуты здесь статичны
+    <html
+      lang="ru"
+      suppressHydrationWarning
+      className={`${lora.variable} ${manrope.variable}`}
+    >
       <body className="bg-cream-50 font-sans text-espresso-900 antialiased">
         {children}
       </body>
