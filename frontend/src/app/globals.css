@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-lora), Georgia, "Times New Roman", serif;
+
+  --color-cream-50: #fbf8f1;
+  --color-cream-100: #f5efe3;
+  --color-cream-200: #eae0cb;
+  --color-cream-300: #dccdb0;
+
+  --color-espresso-950: #1f1408;
+  --color-espresso-900: #2e1f10;
+  --color-espresso-800: #41301d;
+  --color-espresso-700: #57432c;
+  --color-espresso-500: #7a6349;
+  --color-espresso-400: #947d61;
+
+  --color-caramel-700: #8f5420;
+  --color-caramel-600: #a56324;
+  --color-caramel-500: #b5722f;
+  --color-caramel-400: #c98a4b;
+  --color-caramel-200: #e8c79a;
+  --color-caramel-100: #f4e3cb;
+
+  --color-terra-700: #9c3f27;
+  --color-terra-600: #b3452e;
+  --color-terra-200: #ecd3c9;
+  --color-terra-50: #faf0ec;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: var(--color-caramel-200);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-caramel-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
