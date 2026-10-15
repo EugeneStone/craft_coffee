@@ -89,7 +89,7 @@ export default function Products() {
             </li>
           ))}
 
-          <li id="subscription" className="scroll-mt-20 lg:col-span-2">
+          <li id="subscription" className="scroll-mt-20 sm:col-span-2">
             <article className="flex h-full flex-col rounded-2xl bg-espresso-900 p-6 text-cream-50 sm:p-8 lg:flex-row lg:gap-6">
               <div className="flex flex-1 flex-col">
                 <div className="flex flex-wrap items-start justify-between gap-4">
