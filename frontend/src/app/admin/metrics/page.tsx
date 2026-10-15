@@ -63,47 +63,24 @@ function fmtDay(iso: string) {
   return dayFmt.format(new Date(`${iso}T00:00:00`));
 }
 
-function sumChunk(chunk: Metrics['byDay']) {
-  return {
-    instagram: chunk.reduce((s, d) => s + d.instagram, 0),
-    yandex: chunk.reduce((s, d) => s + d.yandex, 0),
-    none: chunk.reduce((s, d) => s + d.none, 0),
-  };
+// короткая числовая подпись дня «12.12» — не обрезается в узких ячейках
+function fmtDayShort(iso: string) {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
 }
 
 function buildBuckets(byDay: Metrics['byDay'], period: Period): { buckets: Bucket[]; scroll: boolean } {
-  if (period === '7') {
+  if (period !== 'all') {
     return {
       scroll: false,
       buckets: byDay.map((d) => ({
         key: d.day,
-        label: fmtDay(d.day),
+        label: fmtDayShort(d.day),
         tooltip: `${fmtDay(d.day)}: ${bucketTotal(d)}`,
         instagram: d.instagram,
         yandex: d.yandex,
         none: d.none,
       })),
     };
-  }
-
-  if (period === '30') {
-    // 4 недельных столбца; размер недели = 30/4 с округлением вверх,
-    // хвост уходит в последнюю неделю
-    const size = Math.ceil(byDay.length / 4);
-    const buckets: Bucket[] = [];
-    for (let i = 0; i < byDay.length; i += size) {
-      const chunk = byDay.slice(i, i + size);
-      const first = chunk[0];
-      const last = chunk[chunk.length - 1];
-      const range = `${fmtDay(first.day)} – ${fmtDay(last.day)}`;
-      buckets.push({
-        key: first.day,
-        label: fmtDay(first.day),
-        tooltip: `${range}: ${bucketTotal(sumChunk(chunk))}`,
-        ...sumChunk(chunk),
-      });
-    }
-    return { scroll: false, buckets };
   }
 
   const byMonth = new Map<string, { instagram: number; yandex: number; none: number }>();
@@ -133,30 +110,34 @@ function ChartColumn({
   bucket,
   maxDay,
   className,
+  barClassName,
 }: {
   bucket: Bucket;
   maxDay: number;
   className: string;
+  barClassName: string;
 }) {
   const n = bucketTotal(bucket);
   return (
     <div className={className} title={n > 0 ? bucket.tooltip : undefined}>
-      {n > 0 && (
-        <div
-          className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
-          style={{ height: `${(n / maxDay) * 100}%` }}
-        >
-          {SOURCES.map((s) =>
-            bucket[s.key] > 0 ? (
-              <div
-                key={s.key}
-                className={`w-full ${s.bar}`}
-                style={{ height: `${(bucket[s.key] / n) * 100}%` }}
-              />
-            ) : null,
-          )}
-        </div>
-      )}
+      <div className={barClassName}>
+        {n > 0 && (
+          <div
+            className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
+            style={{ height: `${(n / maxDay) * 100}%` }}
+          >
+            {SOURCES.map((s) =>
+              bucket[s.key] > 0 ? (
+                <div
+                  key={s.key}
+                  className={`w-full ${s.bar}`}
+                  style={{ height: `${(bucket[s.key] / n) * 100}%` }}
+                />
+              ) : null,
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -259,11 +240,7 @@ export default function AdminMetricsPage() {
 
           <section className="mt-8 rounded-2xl border border-cream-200 bg-white p-5 sm:p-6">
             <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-espresso-500">
-              {period === '30'
-                ? 'По неделям'
-                : period === 'all'
-                  ? 'По месяцам'
-                  : 'По дням'}
+              {period === 'all' ? 'По месяцам' : 'По дням'}
             </h2>
             {metrics.total === 0 ? (
               <p className="mt-6 text-espresso-500">
@@ -279,7 +256,8 @@ export default function AdminMetricsPage() {
                         key={b.key}
                         bucket={b}
                         maxDay={maxDay}
-                        className="flex h-full w-16 shrink-0 items-end"
+                        className="flex h-full w-14 shrink-0 items-end justify-center"
+                        barClassName="w-3"
                       />
                     ))}
                   </div>
@@ -287,7 +265,7 @@ export default function AdminMetricsPage() {
                     {view.buckets.map((b) => (
                       <span
                         key={b.key}
-                        className="w-16 shrink-0 text-center text-[10px] leading-4 whitespace-nowrap text-espresso-400"
+                        className="w-14 shrink-0 text-center text-[10px] leading-4 whitespace-nowrap text-espresso-400"
                       >
                         {b.label}
                       </span>
@@ -297,32 +275,38 @@ export default function AdminMetricsPage() {
               </div>
             ) : (
               <>
-                <div className="mt-5 flex h-44 items-end justify-center gap-1.5 sm:gap-2">
+                <div className="mt-5 flex h-44 items-end gap-0.5 sm:gap-1">
                   {view.buckets.map((b) => (
                     <ChartColumn
                       key={b.key}
                       bucket={b}
                       maxDay={maxDay}
-                      className={`flex h-full min-w-0 flex-1 items-end ${
-                        period === '30' ? 'max-w-[56px]' : 'max-w-[18px]'
-                      }`}
+                      className="flex h-full min-w-0 flex-1 items-end justify-center"
+                      barClassName="w-2.5"
                     />
                   ))}
                 </div>
-                <div className="mt-2 flex h-4 justify-center gap-1.5 sm:gap-2">
-                  {view.buckets.map((b) => (
-                    <span
-                      key={b.key}
-                      aria-hidden="true"
-                      className={`relative h-4 min-w-0 flex-1 text-[10px] text-espresso-400 ${
-                        period === '30' ? 'max-w-[56px]' : 'max-w-[18px]'
-                      }`}
-                    >
-                      <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
-                        {b.label}
+                <div className="mt-2 flex h-4 gap-0.5 sm:gap-1">
+                  {view.buckets.map((b, i) => {
+                    // подписи равномерно от правого края: последняя — сегодня,
+                    // промежуточные каждые step дней, чтобы не налазили друг на друга
+                    const n = view.buckets.length;
+                    const step = Math.max(1, Math.ceil(n / 8));
+                    const show = (n - 1 - i) % step === 0;
+                    return (
+                      <span
+                        key={b.key}
+                        aria-hidden="true"
+                        className="relative h-4 min-w-0 flex-1 text-[10px] text-espresso-400"
+                      >
+                        {show && (
+                          <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
+                            {b.label}
+                          </span>
+                        )}
                       </span>
-                    </span>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
