@@ -9,29 +9,56 @@ type Settings = {
   sub_price: string;
 };
 
+const CHAT_RE = /^@[A-Za-z0-9_]{5,32}$/;
+const CHAT_ID_RE = /^-?\d{5,}$/;
+
+function chatError(value: string): string {
+  if (value && !CHAT_RE.test(value) && !CHAT_ID_RE.test(value)) {
+    return 'Формат: @никнейм или числовой id чата.';
+  }
+  return '';
+}
+
 export default function AdminSettingsPage() {
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  // условия подписки
   const [form, setForm] = useState<Settings>({
     sub_title: '',
     sub_description: '',
     sub_price: '',
   });
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // telegram
+  const [chat, setChat] = useState('');
+  const [tokenConfigured, setTokenConfigured] = useState(true);
+  const [tgError, setTgError] = useState('');
+  const [tgFieldError, setTgFieldError] = useState('');
+  const [tgNotice, setTgNotice] = useState('');
+  const [tgBusy, setTgBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+
   useEffect(() => {
-    apiJson<{ settings: Partial<Settings> }>('/api/admin/settings')
-      .then((data) =>
+    Promise.all([
+      apiJson<{ settings: Partial<Settings> }>('/api/admin/settings'),
+      apiJson<{ chat: string; tokenConfigured: boolean }>('/api/admin/telegram'),
+    ])
+      .then(([sub, tg]) => {
         setForm({
-          sub_title: data.settings.sub_title ?? '',
-          sub_description: data.settings.sub_description ?? '',
-          sub_price: data.settings.sub_price ?? '',
-        }),
-      )
+          sub_title: sub.settings.sub_title ?? '',
+          sub_description: sub.settings.sub_description ?? '',
+          sub_price: sub.settings.sub_price ?? '',
+        });
+        setChat(tg.chat);
+        setTokenConfigured(tg.tokenConfigured);
+      })
       .catch((e) =>
-        setError(e instanceof Error ? e.message : 'Не удалось загрузить.'),
+        setLoadError(e instanceof Error ? e.message : 'Не удалось загрузить.'),
       )
       .finally(() => setLoading(false));
   }, []);
@@ -67,6 +94,64 @@ export default function AdminSettingsPage() {
     }
   }
 
+  async function saveTelegram(target: string): Promise<boolean> {
+    try {
+      await apiJson('/api/admin/telegram', {
+        method: 'PUT',
+        body: JSON.stringify({ chat: target }),
+      });
+      return true;
+    } catch (err) {
+      setTgError(err instanceof Error ? err.message : 'Не получилось сохранить.');
+      return false;
+    }
+  }
+
+  async function submitTelegram(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setTgError('');
+    setTgNotice('');
+    const invalid = chatError(chat.trim());
+    setTgFieldError(invalid);
+    if (invalid) return;
+
+    setTgBusy(true);
+    const saved = await saveTelegram(chat.trim());
+    if (saved) {
+      setTgNotice(
+        chat.trim()
+          ? 'Сохранили. Новые заявки будут дублироваться в этот чат.'
+          : 'Сохранили. Уведомления выключены — заявки остаются только в админке.',
+      );
+    }
+    setTgBusy(false);
+  }
+
+  async function runTest() {
+    setTgError('');
+    setTgNotice('');
+    const target = chat.trim();
+    const invalid = chatError(target);
+    setTgFieldError(invalid);
+    if (invalid) return;
+
+    setTestBusy(true);
+    // тест должен уйти туда, что сейчас в поле — сначала сохраняем его
+    const saved = await saveTelegram(target);
+    if (!saved) {
+      setTestBusy(false);
+      return;
+    }
+    try {
+      await apiJson('/api/admin/telegram/test', { method: 'POST' });
+      setTgNotice('Тестовое сообщение ушло — проверьте чат в Telegram.');
+    } catch (err) {
+      setTgError(err instanceof Error ? err.message : 'Не получилось отправить.');
+    } finally {
+      setTestBusy(false);
+    }
+  }
+
   const inputCls =
     'mt-1.5 w-full rounded-xl border border-cream-300 bg-cream-50/50 px-4 py-2.5 focus:border-caramel-500';
 
@@ -74,17 +159,32 @@ export default function AdminSettingsPage() {
     return <p className="animate-pulse text-espresso-500">Загружаем…</p>;
   }
 
+  if (loadError) {
+    return (
+      <p role="alert" className="text-sm text-terra-600">
+        {loadError}
+      </p>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
       <h1 className="font-display text-2xl font-semibold text-espresso-950">
-        Условия подписки
+        Настройки
       </h1>
       <p className="mt-1.5 text-sm text-espresso-500">
-        Тёмная карточка подписки в каталоге на главной.
+        Условия подписки и дублирование заявок в Telegram.
       </p>
 
       <form onSubmit={submit} className="mt-6 rounded-2xl border border-cream-200 bg-white p-6">
-        <div>
+        <h2 className="font-display text-lg font-semibold text-espresso-950">
+          Условия подписки
+        </h2>
+        <p className="mt-1 text-sm text-espresso-500">
+          Тёмная карточка подписки в каталоге на главной.
+        </p>
+
+        <div className="mt-5">
           <label htmlFor="s-title" className="text-sm font-semibold">
             Заголовок
           </label>
@@ -156,6 +256,77 @@ export default function AdminSettingsPage() {
         >
           {busy ? 'Сохраняем…' : 'Сохранить'}
         </button>
+      </form>
+
+      <form
+        onSubmit={submitTelegram}
+        className="mt-6 rounded-2xl border border-cream-200 bg-white p-6"
+      >
+        <h2 className="font-display text-lg font-semibold text-espresso-950">
+          Telegram-уведомления
+        </h2>
+        <p className="mt-1 text-sm text-espresso-500">
+          Каждая новая заявка с сайта дублируется в Telegram, чтобы её точно не
+          пропустили. Куда: @никнейм канала или группы, где бот добавлен
+          администратором, либо числовой id чата.
+        </p>
+
+        {!tokenConfigured && (
+          <p className="mt-4 rounded-xl bg-caramel-100 px-4 py-3 text-sm text-espresso-800">
+            Токен бота ещё не задан: добавьте <code>TELEGRAM_BOT_TOKEN</code> в{' '}
+            <code>backend/.env</code> и перезапустите API — без него сообщения
+            не уходят.
+          </p>
+        )}
+
+        <div className="mt-5">
+          <label htmlFor="tg-chat" className="text-sm font-semibold">
+            Куда присылать заявки
+          </label>
+          <input
+            id="tg-chat"
+            type="text"
+            value={chat}
+            placeholder="@kvarta_orders"
+            onChange={(e) => setChat(e.target.value)}
+            className={inputCls}
+          />
+          <p className="mt-1.5 text-xs text-espresso-500">
+            Пусто — заявки остаются только в админке.
+          </p>
+          {tgFieldError && (
+            <p className="mt-1 text-sm text-terra-600">{tgFieldError}</p>
+          )}
+        </div>
+
+        {tgError && (
+          <p role="alert" className="mt-4 text-sm text-terra-600">
+            {tgError}
+          </p>
+        )}
+        {tgNotice && (
+          <p role="status" className="mt-4 text-sm text-espresso-700">
+            {tgNotice}
+          </p>
+        )}
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="submit"
+            disabled={tgBusy || testBusy}
+            className="rounded-full bg-espresso-900 px-5 py-2.5 text-sm font-semibold text-cream-50 transition-colors hover:bg-espresso-800 disabled:opacity-60"
+          >
+            {tgBusy ? 'Сохраняем…' : 'Сохранить'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void runTest()}
+            disabled={testBusy || tgBusy || !tokenConfigured || chat.trim() === ''}
+            className="rounded-full border border-espresso-900 px-5 py-2.5 text-sm font-semibold text-espresso-900 transition-colors hover:bg-espresso-900 hover:text-cream-50 disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-espresso-900"
+          >
+            {testBusy ? 'Отправляем…' : 'Отправить тест'}
+          </button>
+        </div>
       </form>
     </div>
   );

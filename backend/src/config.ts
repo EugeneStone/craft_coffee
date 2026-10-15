@@ -6,6 +6,7 @@ export const config = {
     process.env.DATABASE_URL || 'postgres://kvarta:kvarta@localhost:5433/kvarta',
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    // запасной адрес, если в админке поле «куда присылать» пустое
     chatId: process.env.TELEGRAM_CHAT_ID || '',
   },
   admin: {

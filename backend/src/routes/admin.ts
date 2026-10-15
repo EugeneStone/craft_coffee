@@ -3,6 +3,7 @@ import { Router } from 'express';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
+import { config } from '../config.js';
 import { pool } from '../db.js';
 import {
   clearAdminCookie,
@@ -11,6 +12,7 @@ import {
   signAdminToken,
 } from '../lib/auth.js';
 import { normalizePhone } from '../lib/phone.js';
+import { sendTelegramMessage } from '../lib/telegram.js';
 
 export const adminRouter = Router();
 
@@ -508,6 +510,76 @@ adminRouter.put(
         'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
         [key, value],
       );
+    }
+    res.json({ ok: true });
+  }),
+);
+
+/* ---------------- уведомления в Telegram ---------------- */
+
+const TELEGRAM_CHAT_KEY = 'telegram_chat';
+
+// @никнейм открытого канала/группы, где бот добавлен администратором,
+// либо числовой id чата (для личного чата никнейм не подходит — Bot API
+// не умеет по нему писать). Пусто — уведомления выключены.
+const telegramChatSchema = z.object({
+  chat: z
+    .string()
+    .trim()
+    .max(64)
+    .refine(
+      (v) => v === '' || /^@[A-Za-z0-9_]{5,32}$/.test(v) || /^-?\d{5,}$/.test(v),
+      { message: 'Формат: @никнейм (5–32 символа: латиница, цифры, подчёркивание) или числовой id чата.' },
+    ),
+});
+
+adminRouter.get(
+  '/telegram',
+  requireAdmin,
+  wrap(async (_req, res) => {
+    const row = await pool.query<{ value: string }>(
+      'SELECT value FROM settings WHERE key = $1',
+      [TELEGRAM_CHAT_KEY],
+    );
+    res.json({
+      ok: true,
+      chat: row.rows[0]?.value ?? '',
+      tokenConfigured: Boolean(config.telegram.botToken),
+    });
+  }),
+);
+
+adminRouter.put(
+  '/telegram',
+  requireAdmin,
+  wrap(async (req, res) => {
+    const parsed = telegramChatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        ok: false,
+        error: 'validation',
+        fields: { chat: parsed.error.issues[0]?.message ?? 'Проверьте адрес.' },
+      });
+    }
+    await pool.query(
+      'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+      [TELEGRAM_CHAT_KEY, parsed.data.chat],
+    );
+    res.json({ ok: true });
+  }),
+);
+
+adminRouter.post(
+  '/telegram/test',
+  requireAdmin,
+  wrap(async (_req, res) => {
+    const result = await sendTelegramMessage(
+      '☕ «Кварта» — проверка связи.\nСюда будут приходить уведомления о новых заявках.',
+    );
+    if (!result.ok) {
+      return res
+        .status(502)
+        .json({ ok: false, error: 'telegram', message: result.error });
     }
     res.json({ ok: true });
   }),

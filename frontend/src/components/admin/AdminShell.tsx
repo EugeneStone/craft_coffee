@@ -10,7 +10,7 @@ const NAV = [
   { href: '/admin/metrics', label: 'Метрики' },
   { href: '/admin/subscriptions', label: 'Подписки' },
   { href: '/admin/products', label: 'Зерно' },
-  { href: '/admin/settings', label: 'Условия подписки' },
+  { href: '/admin/settings', label: 'Настройки' },
 ];
 
 export default function AdminShell({ children }: { children: ReactNode }) {
