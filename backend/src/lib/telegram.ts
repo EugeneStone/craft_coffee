@@ -3,6 +3,28 @@ import { pool } from '../db.js';
 
 export type TelegramResult = { ok: boolean; error?: string };
 
+let cachedBotUsername: string | null = null;
+
+// Имя бота для подсказки в админке; кэшируем — оно не меняется на жизни процесса.
+export async function telegramBotUsername(): Promise<string | null> {
+  if (cachedBotUsername) return cachedBotUsername;
+  const { botToken } = config.telegram;
+  if (!botToken) return null;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+    const data = (await res.json().catch(() => null)) as
+      | { ok?: boolean; result?: { username?: string } }
+      | null;
+    if (res.ok && data?.ok && data.result?.username) {
+      cachedBotUsername = data.result.username;
+      return cachedBotUsername;
+    }
+  } catch {
+    // нет сети — инструкция покажется без ссылки
+  }
+  return null;
+}
+
 // Bot API отвечает по-английски — на частые отказы даём понятную подсказку
 function humanizeTelegramError(description: string): string {
   if (/chat not found/i.test(description)) {

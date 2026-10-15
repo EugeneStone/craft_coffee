@@ -9,12 +9,11 @@ type Settings = {
   sub_price: string;
 };
 
-const CHAT_RE = /^@[A-Za-z0-9_]{5,32}$/;
 const CHAT_ID_RE = /^-?\d{5,}$/;
 
 function chatError(value: string): string {
-  if (value && !CHAT_RE.test(value) && !CHAT_ID_RE.test(value)) {
-    return 'Формат: @никнейм или числовой id чата.';
+  if (value && !CHAT_ID_RE.test(value)) {
+    return 'id — это число, например 123456789.';
   }
   return '';
 }
@@ -37,6 +36,7 @@ export default function AdminSettingsPage() {
   // telegram
   const [chat, setChat] = useState('');
   const [tokenConfigured, setTokenConfigured] = useState(true);
+  const [botUsername, setBotUsername] = useState('');
   const [tgError, setTgError] = useState('');
   const [tgFieldError, setTgFieldError] = useState('');
   const [tgNotice, setTgNotice] = useState('');
@@ -46,7 +46,9 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     Promise.all([
       apiJson<{ settings: Partial<Settings> }>('/api/admin/settings'),
-      apiJson<{ chat: string; tokenConfigured: boolean }>('/api/admin/telegram'),
+      apiJson<{ chat: string; tokenConfigured: boolean; botUsername: string | null }>(
+        '/api/admin/telegram',
+      ),
     ])
       .then(([sub, tg]) => {
         setForm({
@@ -56,6 +58,7 @@ export default function AdminSettingsPage() {
         });
         setChat(tg.chat);
         setTokenConfigured(tg.tokenConfigured);
+        setBotUsername(tg.botUsername ?? '');
       })
       .catch((e) =>
         setLoadError(e instanceof Error ? e.message : 'Не удалось загрузить.'),
@@ -120,7 +123,7 @@ export default function AdminSettingsPage() {
     if (saved) {
       setTgNotice(
         chat.trim()
-          ? 'Сохранили. Новые заявки будут дублироваться в этот чат.'
+          ? 'Сохранили. Новые заявки будут приходить вам в Telegram.'
           : 'Сохранили. Уведомления выключены — заявки остаются только в админке.',
       );
     }
@@ -267,8 +270,7 @@ export default function AdminSettingsPage() {
         </h2>
         <p className="mt-1 text-sm text-espresso-500">
           Каждая новая заявка с сайта дублируется в Telegram, чтобы её точно не
-          пропустили. Куда: @никнейм канала или группы, где бот добавлен
-          администратором, либо числовой id чата.
+          пропустили. Укажите свой id — бот напишет вам в личку.
         </p>
 
         {!tokenConfigured && (
@@ -279,15 +281,54 @@ export default function AdminSettingsPage() {
           </p>
         )}
 
+        <div className="mt-4 rounded-xl bg-cream-100 px-4 py-3 text-sm text-espresso-800">
+          <p className="font-semibold">Как настроить и проверить</p>
+          <ol className="mt-1.5 list-decimal space-y-1 pl-5">
+            <li>
+              Откройте бота{' '}
+              {botUsername ? (
+                <a
+                  href={`https://t.me/${botUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium underline underline-offset-2"
+                >
+                  @{botUsername}
+                </a>
+              ) : (
+                'в Telegram'
+              )}{' '}
+              и отправьте ему <code>/start</code> — первым бот писать не умеет.
+            </li>
+            <li>
+              Свой id узнайте у{' '}
+              <a
+                href="https://t.me/userinfobot"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline underline-offset-2"
+              >
+                @userinfobot
+              </a>{' '}
+              — он ответит числом.
+            </li>
+            <li>
+              Впишите число, нажмите «Сохранить», затем «Отправить тест» — в
+              Telegram придёт проверочное сообщение.
+            </li>
+          </ol>
+        </div>
+
         <div className="mt-5">
           <label htmlFor="tg-chat" className="text-sm font-semibold">
-            Куда присылать заявки
+            Ваш id в Telegram
           </label>
           <input
             id="tg-chat"
             type="text"
+            inputMode="numeric"
             value={chat}
-            placeholder="@kvarta_orders"
+            placeholder="123456789"
             onChange={(e) => setChat(e.target.value)}
             className={inputCls}
           />

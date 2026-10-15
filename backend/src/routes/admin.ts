@@ -12,7 +12,7 @@ import {
   signAdminToken,
 } from '../lib/auth.js';
 import { normalizePhone } from '../lib/phone.js';
-import { sendTelegramMessage } from '../lib/telegram.js';
+import { sendTelegramMessage, telegramBotUsername } from '../lib/telegram.js';
 
 export const adminRouter = Router();
 
@@ -519,18 +519,16 @@ adminRouter.put(
 
 const TELEGRAM_CHAT_KEY = 'telegram_chat';
 
-// @никнейм открытого канала/группы, где бот добавлен администратором,
-// либо числовой id чата (для личного чата никнейм не подходит — Bot API
-// не умеет по нему писать). Пусто — уведомления выключены.
+// Числовой id получателя: свой — у @userinfobot после /start нашему боту,
+// у групп id отрицательный. Пусто — уведомления выключены.
 const telegramChatSchema = z.object({
   chat: z
     .string()
     .trim()
     .max(64)
-    .refine(
-      (v) => v === '' || /^@[A-Za-z0-9_]{5,32}$/.test(v) || /^-?\d{5,}$/.test(v),
-      { message: 'Формат: @никнейм (5–32 символа: латиница, цифры, подчёркивание) или числовой id чата.' },
-    ),
+    .refine((v) => v === '' || /^-?\d{5,}$/.test(v), {
+      message: 'id — это число, например 123456789.',
+    }),
 });
 
 adminRouter.get(
@@ -545,6 +543,7 @@ adminRouter.get(
       ok: true,
       chat: row.rows[0]?.value ?? '',
       tokenConfigured: Boolean(config.telegram.botToken),
+      botUsername: await telegramBotUsername(),
     });
   }),
 );
