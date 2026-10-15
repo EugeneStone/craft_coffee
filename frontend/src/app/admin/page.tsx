@@ -14,20 +14,13 @@ type Lead = {
   comment: string | null;
   status: LeadStatus;
   source: 'instagram' | 'yandex' | null;
-  utm_source: string | null;
-  utm_medium: string | null;
-  utm_campaign: string | null;
-  utm_content: string | null;
-  utm_term: string | null;
-  referrer: string | null;
-  page_url: string | null;
   created_at: string;
 };
 
 const INTEREST_META: Record<Interest, { label: string; badge: string }> = {
   subscription: { label: 'Подписка', badge: 'bg-caramel-100 text-espresso-900' },
   order: { label: 'Заказ', badge: 'bg-cream-200 text-espresso-800' },
-  question: { label: 'Вопрос', badge: 'bg-espresso-100 text-cream-50' },
+  question: { label: 'Вопрос', badge: 'bg-espresso-800 text-cream-50' },
 };
 
 const SOURCE_META: Record<'instagram' | 'yandex', { label: string; badge: string }> = {
@@ -208,8 +201,6 @@ export default function AdminLeadsPage() {
                   </p>
                 )}
 
-                <UtmLine lead={lead} />
-
                 <div className="mt-4 flex flex-wrap gap-2">
                   {lead.status === 'new' ? (
                     <button
@@ -230,16 +221,14 @@ export default function AdminLeadsPage() {
                       Вернуть в новые
                     </button>
                   )}
-                  {lead.interest === 'subscription' && (
-                    <button
-                      type="button"
-                      disabled={busyId === lead.id}
-                      onClick={() => void makeSubscription(lead)}
-                      className="rounded-full border border-caramel-500 px-4 py-2 text-sm font-semibold text-espresso-900 transition-colors hover:bg-caramel-100 disabled:opacity-60"
-                    >
-                      Оформить подписку
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    disabled={busyId === lead.id}
+                    onClick={() => void makeSubscription(lead)}
+                    className="rounded-full border border-caramel-500 px-4 py-2 text-sm font-semibold text-espresso-900 transition-colors hover:bg-caramel-100 disabled:opacity-60"
+                  >
+                    Оформить подписку
+                  </button>
                 </div>
               </article>
             </li>
@@ -247,22 +236,5 @@ export default function AdminLeadsPage() {
         </ul>
       )}
     </div>
-  );
-}
-
-function UtmLine({ lead }: { lead: Lead }) {
-  // источник уже показан плашкой — в метках он только дублировал бы её
-  const utm = [
-    lead.utm_medium && `medium: ${lead.utm_medium}`,
-    lead.utm_campaign && `campaign: ${lead.utm_campaign}`,
-    lead.utm_content && `content: ${lead.utm_content}`,
-    lead.utm_term && `term: ${lead.utm_term}`,
-    lead.referrer && `referrer: ${lead.referrer}`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  if (!utm) return null;
-  return (
-    <p className="mt-3 text-xs leading-relaxed text-espresso-400">{utm}</p>
   );
 }

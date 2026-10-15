@@ -31,22 +31,22 @@ const SOURCES: {
     key: 'yandex',
     label: 'Яндекс',
     card: 'border-terra-300 bg-terra-50',
-    bar: 'bg-terra-400',
-    dot: 'bg-terra-400',
+    bar: 'bg-terra-500',
+    dot: 'bg-terra-500',
   },
   {
     key: 'none',
     label: 'Не по рекламе',
     card: 'border-cream-300 bg-white',
-    bar: 'bg-espresso-300',
-    dot: 'bg-espresso-300',
+    bar: 'bg-espresso-700',
+    dot: 'bg-espresso-700',
   },
 ];
 
-const PERIODS: { value: Period; label: string }[] = [
-  { value: '7', label: '7 дней' },
-  { value: '30', label: '30 дней' },
-  { value: 'all', label: 'Всё время' },
+const PERIODS: { value: Period; label: string; sub: string }[] = [
+  { value: '7', label: '7 дней', sub: 'за последние 7 дней' },
+  { value: '30', label: '30 дней', sub: 'за последние 30 дней' },
+  { value: 'all', label: 'Всё время', sub: 'за всё время' },
 ];
 
 const dayFmt = new Intl.DateTimeFormat('ru-RU', {
@@ -73,6 +73,10 @@ export default function AdminMetricsPage() {
     setMetrics(null);
     void load();
   }, [load]);
+
+  const maxDay = metrics
+    ? Math.max(...metrics.byDay.map((d) => d.instagram + d.yandex + d.none), 1)
+    : 1;
 
   return (
     <div>
@@ -142,7 +146,7 @@ export default function AdminMetricsPage() {
                 {metrics.total}
               </p>
               <p className="mt-0.5 text-sm text-cream-200">
-                {PERIODS.find((p) => p.value === period)?.label.toLowerCase()}
+                {PERIODS.find((p) => p.value === period)?.sub}
               </p>
             </div>
           </div>
@@ -161,37 +165,56 @@ export default function AdminMetricsPage() {
                 <div className="mt-5 flex h-44 items-end gap-1 sm:gap-1.5">
                   {metrics.byDay.map((d) => {
                     const dayTotal = d.instagram + d.yandex + d.none;
-                    const h = (n: number) =>
-                      dayTotal > 0 ? `${(n / dayTotal) * 100}%` : '0%';
+                    const h = (n: number) => `${(n / maxDay) * 100}%`;
+                    const seg = (n: number) => `${(n / dayTotal) * 100}%`;
                     return (
                       <div
                         key={d.day}
-                        className="flex h-full min-w-0 flex-1 flex-col justify-end"
+                        className="flex h-full min-w-0 flex-1 items-end"
                         title={`${dayFmt.format(new Date(`${d.day}T00:00:00`))}: ${dayTotal}`}
                       >
                         {dayTotal > 0 && (
-                          <div className="flex h-full w-full flex-col justify-end overflow-hidden rounded-t-[3px]">
-                            <div className={`w-full ${SOURCES[0].bar}`} style={{ height: h(d.instagram) }} />
-                            <div className={`w-full ${SOURCES[1].bar}`} style={{ height: h(d.yandex) }} />
-                            <div className={`w-full ${SOURCES[2].bar}`} style={{ height: h(d.none) }} />
+                          <div
+                            className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
+                            style={{ height: h(dayTotal) }}
+                          >
+                            {d.instagram > 0 && (
+                              <div className={`w-full ${SOURCES[0].bar}`} style={{ height: seg(d.instagram) }} />
+                            )}
+                            {d.yandex > 0 && (
+                              <div className={`w-full ${SOURCES[1].bar}`} style={{ height: seg(d.yandex) }} />
+                            )}
+                            {d.none > 0 && (
+                              <div className={`w-full ${SOURCES[2].bar}`} style={{ height: seg(d.none) }} />
+                            )}
                           </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
-                <div className="mt-2 flex gap-1 sm:gap-1.5">
+                <div className="mt-2 flex h-4 gap-1 sm:gap-1.5">
                   {metrics.byDay.map((d, i) => {
-                    const step = Math.ceil(metrics.byDay.length / 10);
-                    const show = i % step === 0 || i === metrics.byDay.length - 1;
+                    const n = metrics.byDay.length;
+                    const step = n <= 10 ? 1 : Math.ceil(n / 6);
+                    const show = i % step === 0 || i === n - 1;
+                    const pos =
+                      i === 0
+                        ? 'left-0'
+                        : i === n - 1
+                          ? 'right-0'
+                          : 'left-1/2 -translate-x-1/2';
                     return (
                       <span
                         key={d.day}
-                        className="min-w-0 flex-1 truncate text-center text-[10px] text-espresso-400"
+                        aria-hidden={!show}
+                        className="relative h-4 min-w-0 flex-1 text-[10px] text-espresso-400"
                       >
-                        {show
-                          ? dayFmt.format(new Date(`${d.day}T00:00:00`))
-                          : '\u00A0'}
+                        {show && (
+                          <span className={`absolute whitespace-nowrap ${pos}`}>
+                            {dayFmt.format(new Date(`${d.day}T00:00:00`))}
+                          </span>
+                        )}
                       </span>
                     );
                   })}
