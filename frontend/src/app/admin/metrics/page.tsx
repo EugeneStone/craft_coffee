@@ -170,7 +170,7 @@ export default function AdminMetricsPage() {
                         title={`${dayFmt.format(new Date(`${d.day}T00:00:00`))}: ${dayTotal}`}
                       >
                         {dayTotal > 0 && (
-                          <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-[3px]">
+                          <div className="flex h-full w-full flex-col justify-end overflow-hidden rounded-t-[3px]">
                             <div className={`w-full ${SOURCES[0].bar}`} style={{ height: h(d.instagram) }} />
                             <div className={`w-full ${SOURCES[1].bar}`} style={{ height: h(d.yandex) }} />
                             <div className={`w-full ${SOURCES[2].bar}`} style={{ height: h(d.none) }} />
