@@ -32,6 +32,7 @@ const schema = `
   );
   CREATE INDEX IF NOT EXISTS leads_created_at_idx ON leads (created_at DESC);
   ALTER TABLE leads ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'new';
+  ALTER TABLE leads ADD COLUMN IF NOT EXISTS source text;
 
   CREATE TABLE IF NOT EXISTS products (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,10 +43,10 @@ const schema = `
     weight     text NOT NULL DEFAULT '250 г',
     price      integer NOT NULL,
     is_active  boolean NOT NULL DEFAULT true,
-    sort_order integer NOT NULL DEFAULT 0,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
   );
+  ALTER TABLE products DROP COLUMN IF EXISTS sort_order;
 
   CREATE TABLE IF NOT EXISTS subscriptions (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -80,7 +81,6 @@ const seedProducts = [
     hint: 'Для воронки и чёрного кофе без молока',
     weight: '250 г',
     price: 32,
-    sort_order: 1,
   },
   {
     name: 'Колумбия Уила',
@@ -89,7 +89,6 @@ const seedProducts = [
     hint: 'Универсальная: и в фильтр, и с молоком',
     weight: '250 г',
     price: 29,
-    sort_order: 2,
   },
   {
     name: 'Бразилия Серрадо',
@@ -98,7 +97,6 @@ const seedProducts = [
     hint: 'Плотная, для эспрессо и молочных напитков',
     weight: '250 г',
     price: 26,
-    sort_order: 3,
   },
   {
     name: 'Дрип-пакеты, ассорти',
@@ -107,7 +105,6 @@ const seedProducts = [
     hint: 'Кофе в дорогу: кружка, кипяток — и готово',
     weight: '10 штук',
     price: 18,
-    sort_order: 4,
   },
 ];
 
@@ -121,10 +118,10 @@ const seedSettings: Record<string, string> = {
 async function seed(): Promise<void> {
   for (const p of seedProducts) {
     await pool.query(
-      `INSERT INTO products (name, roast, notes, hint, weight, price, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO products (name, roast, notes, hint, weight, price)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (name) DO NOTHING`,
-      [p.name, p.roast, p.notes, p.hint, p.weight, p.price, p.sort_order],
+      [p.name, p.roast, p.notes, p.hint, p.weight, p.price],
     );
   }
 

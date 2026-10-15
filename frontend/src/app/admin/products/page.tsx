@@ -12,7 +12,6 @@ type Product = {
   weight: string;
   price: number;
   is_active: boolean;
-  sort_order: number;
 };
 
 type FormState = {
@@ -22,7 +21,6 @@ type FormState = {
   hint: string;
   weight: string;
   price: string;
-  sort_order: string;
   is_active: boolean;
 };
 
@@ -33,7 +31,6 @@ const EMPTY_FORM: FormState = {
   hint: '',
   weight: '250 г',
   price: '',
-  sort_order: '0',
   is_active: true,
 };
 
@@ -108,7 +105,6 @@ export default function AdminProductsPage() {
       hint: state.hint.trim(),
       weight: state.weight.trim(),
       price: Number(state.price),
-      sort_order: Number(state.sort_order || 0),
       is_active: state.is_active,
     };
     try {
@@ -266,7 +262,6 @@ function ProductForm({
           hint: initial.hint,
           weight: initial.weight,
           price: String(initial.price),
-          sort_order: String(initial.sort_order),
           is_active: initial.is_active,
         }
       : EMPTY_FORM,
@@ -380,20 +375,6 @@ function ProductForm({
             className={inputCls}
           />
           {fieldErrors.price && <p className="mt-1 text-sm text-terra-600">{fieldErrors.price}</p>}
-        </div>
-        <div>
-          <label htmlFor="p-sort" className="text-sm font-semibold">
-            Порядок на сайте
-          </label>
-          <input
-            id="p-sort"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={form.sort_order}
-            onChange={(e) => set('sort_order', e.target.value)}
-            className={inputCls}
-          />
         </div>
         <div className="flex items-end pb-2.5">
           <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium">

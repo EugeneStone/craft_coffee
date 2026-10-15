@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { pool } from '../db.js';
 import { normalizePhone } from '../lib/phone.js';
 import { relayToTelegram } from '../lib/telegram.js';
+import { detectSource, SOURCE_LABELS } from '../lib/source.js';
 
 export const leadRouter = Router();
 
@@ -107,16 +108,17 @@ leadRouter.post('/lead', leadLimiter, async (req, res) => {
 
     const inserted = await client.query<{ id: string }>(
       `INSERT INTO leads
-        (name, phone, interest, comment,
+        (name, phone, interest, comment, source,
          utm_source, utm_medium, utm_campaign, utm_content, utm_term,
          referrer, page_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id`,
       [
         data.name,
         phone,
         data.interest,
         data.comment || null,
+        detectSource(data),
         data.utm_source || null,
         data.utm_medium || null,
         data.utm_campaign || null,
@@ -138,12 +140,15 @@ leadRouter.post('/lead', leadLimiter, async (req, res) => {
       .filter(Boolean)
       .join(' / ');
 
+    const source = detectSource(data);
+
     relayToTelegram(
       [
         '☕ Новая заявка — «Кварта»',
         `Имя: ${data.name}`,
         `Телефон: ${phone}`,
         `Интерес: ${INTEREST_LABELS[data.interest]}`,
+        source ? `Источник: ${SOURCE_LABELS[source]}` : null,
         data.comment ? `Комментарий: ${data.comment}` : null,
         utm ? `Метка: ${utm}` : null,
         data.page_url ? `Страница: ${data.page_url}` : null,

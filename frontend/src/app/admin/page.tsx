@@ -13,6 +13,7 @@ type Lead = {
   interest: Interest;
   comment: string | null;
   status: LeadStatus;
+  source: 'instagram' | 'yandex' | null;
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
@@ -27,6 +28,11 @@ const INTEREST_META: Record<Interest, { label: string; badge: string }> = {
   subscription: { label: 'Подписка', badge: 'bg-caramel-100 text-espresso-900' },
   order: { label: 'Заказ', badge: 'bg-cream-200 text-espresso-800' },
   question: { label: 'Вопрос', badge: 'bg-espresso-100 text-cream-50' },
+};
+
+const SOURCE_META: Record<'instagram' | 'yandex', { label: string; badge: string }> = {
+  instagram: { label: 'Instagram', badge: 'border border-caramel-400 bg-caramel-100/60 text-espresso-900' },
+  yandex: { label: 'Яндекс', badge: 'border border-terra-300 bg-terra-50 text-terra-700' },
 };
 
 const INTEREST_FILTERS: { value: Interest | 'all'; label: string }[] = [
@@ -164,11 +170,20 @@ export default function AdminLeadsPage() {
               <article className="rounded-2xl border border-cream-200 bg-white p-5">
                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
                   <div>
-                    <span
-                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${INTEREST_META[lead.interest].badge}`}
-                    >
-                      {INTEREST_META[lead.interest].label}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${INTEREST_META[lead.interest].badge}`}
+                      >
+                        {INTEREST_META[lead.interest].label}
+                      </span>
+                      {lead.source && (
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${SOURCE_META[lead.source].badge}`}
+                        >
+                          {SOURCE_META[lead.source].label}
+                        </span>
+                      )}
+                    </div>
                     <h2 className="mt-1.5 text-lg font-semibold text-espresso-950">
                       {lead.name}
                     </h2>

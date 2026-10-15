@@ -11,7 +11,7 @@ catalogRouter.get('/products', async (_req, res) => {
     `SELECT name, roast, notes, hint, weight, price
      FROM products
      WHERE is_active
-     ORDER BY sort_order, created_at`,
+     ORDER BY created_at`,
   );
   res.json({ ok: true, products: rows.rows });
 });

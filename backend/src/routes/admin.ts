@@ -112,7 +112,7 @@ adminRouter.get(
     }
 
     const rows = await pool.query(
-      `SELECT id, name, phone, interest, comment, status,
+      `SELECT id, name, phone, interest, comment, status, source,
               utm_source, utm_medium, utm_campaign, utm_content, utm_term,
               referrer, page_url, created_at
        FROM leads
@@ -158,7 +158,6 @@ const productSchema = z.object({
   weight: z.string().trim().min(1).max(40).default('250 г'),
   price: z.number().int().min(0).max(100000),
   is_active: z.boolean().default(true),
-  sort_order: z.number().int().min(0).max(1000).default(0),
 });
 
 adminRouter.get(
@@ -166,8 +165,8 @@ adminRouter.get(
   requireAdmin,
   wrap(async (_req, res) => {
     const rows = await pool.query(
-      `SELECT id, name, roast, notes, hint, weight, price, is_active, sort_order
-       FROM products ORDER BY sort_order, created_at`,
+      `SELECT id, name, roast, notes, hint, weight, price, is_active
+       FROM products ORDER BY created_at`,
     );
     res.json({ ok: true, products: rows.rows });
   }),
@@ -188,9 +187,9 @@ adminRouter.post(
     const p = parsed.data;
     try {
       const inserted = await pool.query<{ id: string }>(
-        `INSERT INTO products (name, roast, notes, hint, weight, price, is_active, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-        [p.name, p.roast, p.notes, p.hint, p.weight, p.price, p.is_active, p.sort_order],
+        `INSERT INTO products (name, roast, notes, hint, weight, price, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [p.name, p.roast, p.notes, p.hint, p.weight, p.price, p.is_active],
       );
       res.status(201).json({ ok: true, id: inserted.rows[0].id });
     } catch (e) {
