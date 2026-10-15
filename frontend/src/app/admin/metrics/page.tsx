@@ -120,7 +120,9 @@ function ChartColumn({
   const n = bucketTotal(bucket);
   return (
     <div className={className} title={n > 0 ? bucket.tooltip : undefined}>
-      <div className={barClassName}>
+      {/* обёртка столбика обязана иметь определённую высоту — иначе
+          проценты высоты внутри неё схлопнутся в ноль */}
+      <div className={`flex h-full items-end ${barClassName}`}>
         {n > 0 && (
           <div
             className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
@@ -265,7 +267,7 @@ export default function AdminMetricsPage() {
                     {view.buckets.map((b) => (
                       <span
                         key={b.key}
-                        className="w-14 shrink-0 text-center text-[10px] leading-4 whitespace-nowrap text-espresso-400"
+                        className="w-14 shrink-0 text-center text-[11px] leading-4 whitespace-nowrap text-espresso-400"
                       >
                         {b.label}
                       </span>
@@ -297,7 +299,7 @@ export default function AdminMetricsPage() {
                       <span
                         key={b.key}
                         aria-hidden="true"
-                        className="relative h-4 min-w-0 flex-1 text-[10px] text-espresso-400"
+                        className="relative h-4 min-w-0 flex-1 text-[11px] text-espresso-400"
                       >
                         {show && (
                           <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
