@@ -15,6 +15,9 @@ const pg = new EmbeddedPostgres({
   password: 'kvarta',
   port,
   persistent: true,
+  // UTF-8 здесь не задаём: если проект лежит в пути с кириллицей (OneDrive!),
+  // initdb падает. Кластер в системной кодировке, а клиент общается в UTF-8 —
+  // см. client_encoding в backend/src/db.ts
 });
 
 async function main() {
