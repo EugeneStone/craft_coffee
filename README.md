@@ -5,7 +5,7 @@
 
 **Стек:** Next.js 15 (App Router, TypeScript, Tailwind 4) · Express · PostgreSQL
 
-**Живой сайт:** https://kvarta.vercel.app (форма и админка `/admin`, вход
+**Живой сайт:** https://kvarta-pi.vercel.app (форма и админка `/admin`, вход
 `admin` / `admin`) · **API:** https://kvarta-api.vercel.app
 
 ## Как запустить локально
@@ -73,6 +73,8 @@ SQL — его можно выполнить в SQL-редакторе Neon на
 переменная окружения `API_ORIGIN = https://<имя-api-проекта>.vercel.app` →
 Deploy. Адрес API подставляется в rewrites на этапе сборки, поэтому переменную
 нужно задать до первого деплоя (если добавили позже — сделайте Redeploy).
+Домен продакшена Vercel берёт как `<имя-проекта>.vercel.app`, а если имя занято —
+добавляет суффикс: у нас получилось `kvarta-pi.vercel.app`.
 
 **5. Проверка.** Лендинг: форма → «Заявка у нас», в админке появляется новая
 заявка. Админка: `/admin`, вход `admin` / `admin`. Telegram: «Настройки» →
