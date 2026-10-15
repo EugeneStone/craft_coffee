@@ -3,6 +3,20 @@ import { pool } from '../db.js';
 
 export type TelegramResult = { ok: boolean; error?: string };
 
+// Bot API отвечает по-английски — на частые отказы даём понятную подсказку
+function humanizeTelegramError(description: string): string {
+  if (/chat not found/i.test(description)) {
+    return 'Telegram не знает такой чат. Проверьте @никнейм (для открытых каналов и групп он начинается с @).';
+  }
+  if (/not enough rights|not a member|administrator/i.test(description)) {
+    return 'Бот не в этом чате — добавьте его участником, а для канала ещё и администратором.';
+  }
+  if (/blocked/i.test(description)) {
+    return 'Получатель заблокировал бота — снимите блокировку и попробуйте снова.';
+  }
+  return description;
+}
+
 // Куда присылать заявки: адрес сохраняется в админке (@никнейм канала или id
 // чата), TELEGRAM_CHAT_ID из env — запасной вариант для старых установок.
 async function telegramTarget(): Promise<string> {
@@ -46,7 +60,12 @@ export async function sendTelegramMessage(text: string): Promise<TelegramResult>
       | { ok?: boolean; description?: string }
       | null;
     if (!res.ok || !data?.ok) {
-      return { ok: false, error: data?.description || `Telegram ответил кодом ${res.status}.` };
+      return {
+        ok: false,
+        error: data?.description
+          ? humanizeTelegramError(data.description)
+          : `Telegram ответил кодом ${res.status}.`,
+      };
     }
     return { ok: true };
   } catch (e) {
