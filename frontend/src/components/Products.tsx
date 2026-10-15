@@ -110,8 +110,8 @@ export default function Products() {
                 </div>
                 <p className="mt-4 max-w-xl leading-relaxed text-cream-200">
                   2 пачки по 250 г раз в месяц, доставка бесплатная. Сорт можно
-                  менять: перед обжаркой спросим, что положить в посылку.
-                  Оплата — раз в месяц, без автосписаний.
+                  менять — перед обжаркой спросим, что вам интереснее. Оплата
+                  раз в месяц.
                 </p>
                 <div className="mt-auto pt-6">
                   <OrderButton interest="subscription" dark>

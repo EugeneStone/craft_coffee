@@ -62,7 +62,7 @@ export default function Hero() {
             className="aspect-[16/10] w-full rounded-2xl object-cover shadow-lg"
           />
           <figcaption className="absolute -bottom-4 left-4 rounded-xl bg-espresso-900 px-4 py-2 text-sm font-medium text-cream-50 shadow-md">
-            Ближайшая обжарка — в четверг
+            Ещё тёплый
           </figcaption>
         </figure>
       </div>

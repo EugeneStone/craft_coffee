@@ -53,7 +53,6 @@ export default function Footer() {
             © {new Date().getFullYear()} Кварта
             <CoffeeCup tone="dark" animated={false} className="h-6 w-6" />
           </p>
-          <p>Телефон и почта — заглушки из тестового задания.</p>
         </div>
       </div>
     </footer>
