@@ -1,4 +1,5 @@
 import OrderButton from './OrderButton';
+import CoffeeGirl from './CoffeeGirl';
 
 const PRODUCTS = [
   {
@@ -89,32 +90,37 @@ export default function Products() {
           ))}
 
           <li id="subscription" className="scroll-mt-20 lg:col-span-2">
-            <article className="flex h-full flex-col rounded-2xl bg-espresso-900 p-6 text-cream-50 sm:p-8">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-caramel-400">
-                    Подписка
+            <article className="flex h-full flex-col rounded-2xl bg-espresso-900 p-6 text-cream-50 sm:p-8 lg:flex-row lg:gap-6">
+              <div className="flex flex-1 flex-col">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-caramel-400">
+                      Подписка
+                    </p>
+                    <h3 className="mt-3 font-display text-3xl font-semibold">
+                      Две пачки каждый месяц
+                    </h3>
+                  </div>
+                  <p className="font-display text-3xl font-semibold">
+                    54{' '}
+                    <span className="text-lg font-normal text-cream-200">
+                      BYN/мес
+                    </span>
                   </p>
-                  <h3 className="mt-3 font-display text-3xl font-semibold">
-                    Две пачки каждый месяц
-                  </h3>
                 </div>
-                <p className="font-display text-3xl font-semibold">
-                  54{' '}
-                  <span className="text-lg font-normal text-cream-200">
-                    BYN/мес
-                  </span>
+                <p className="mt-4 max-w-xl leading-relaxed text-cream-200">
+                  2 пачки по 250 г раз в месяц, доставка бесплатная. Сорт можно
+                  менять: перед обжаркой спросим, что положить в посылку.
+                  Оплата — раз в месяц, без автосписаний.
                 </p>
+                <div className="mt-auto pt-6">
+                  <OrderButton interest="subscription" dark>
+                    Оформить подписку
+                  </OrderButton>
+                </div>
               </div>
-              <p className="mt-4 max-w-xl leading-relaxed text-cream-200">
-                2 пачки по 250 г раз в месяц, доставка бесплатная. Сорт можно
-                менять: перед обжаркой спросим, что положить в посылку. Оплата —
-                раз в месяц, без автосписаний.
-              </p>
-              <div className="mt-auto pt-6">
-                <OrderButton interest="subscription" dark>
-                  Оформить подписку
-                </OrderButton>
+              <div aria-hidden="true" className="-mb-6 -mr-2 w-32 shrink-0 self-end sm:-mb-8 sm:-mr-4 sm:w-36 lg:w-44">
+                <CoffeeGirl />
               </div>
             </article>
           </li>
