@@ -251,8 +251,8 @@ export default function AdminLeadsPage() {
 }
 
 function UtmLine({ lead }: { lead: Lead }) {
+  // источник уже показан плашкой — в метках он только дублировал бы её
   const utm = [
-    lead.utm_source && `source: ${lead.utm_source}`,
     lead.utm_medium && `medium: ${lead.utm_medium}`,
     lead.utm_campaign && `campaign: ${lead.utm_campaign}`,
     lead.utm_content && `content: ${lead.utm_content}`,
