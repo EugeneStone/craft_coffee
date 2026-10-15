@@ -288,27 +288,42 @@ export default function AdminMetricsPage() {
                     />
                   ))}
                 </div>
-                <div className="mt-2 flex h-4 gap-0.5 sm:gap-1">
-                  {view.buckets.map((b, i) => {
-                    // подписи равномерно от правого края: последняя — сегодня,
-                    // промежуточные каждые step дней, чтобы не налазили друг на друга
-                    const n = view.buckets.length;
-                    const step = Math.max(1, Math.ceil(n / 8));
-                    const show = (n - 1 - i) % step === 0;
-                    return (
-                      <span
-                        key={b.key}
-                        aria-hidden="true"
-                        className="relative h-4 min-w-0 flex-1 text-[11px] text-espresso-400"
-                      >
-                        {show && (
-                          <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
-                            {b.label}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
+                <div className="mt-2">
+                  {view.buckets.length > 10
+                    ? [0, 1].map((row) => (
+                        // шахматные подписи: каждая дата на своём месте,
+                        // соседние даты в строке через 2 ячейки — не налазят
+                        <div key={row} className="flex h-4 gap-0.5 sm:gap-1">
+                          {view.buckets.map((b, i) => (
+                            <span
+                              key={b.key}
+                              aria-hidden="true"
+                              className="relative h-4 min-w-0 flex-1 text-[11px] text-espresso-400"
+                            >
+                              {i % 2 === row && (
+                                <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
+                                  {b.label}
+                                </span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      ))
+                    : (
+                        <div className="flex h-4 gap-0.5 sm:gap-1">
+                          {view.buckets.map((b) => (
+                            <span
+                              key={b.key}
+                              aria-hidden="true"
+                              className="relative h-4 min-w-0 flex-1 text-[11px] text-espresso-400"
+                            >
+                              <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap">
+                                {b.label}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                 </div>
               </>
             )}
