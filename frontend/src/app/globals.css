@@ -46,6 +46,12 @@ body {
   outline-offset: 2px;
 }
 
+/* В Tailwind v4 кнопки не получают pointer от префлайта — задаём сами */
+button:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
+
 /* Рисованные чашки: пар поднимается, большая чашка в подписке покачивается */
 @keyframes kv-steam {
   0% {

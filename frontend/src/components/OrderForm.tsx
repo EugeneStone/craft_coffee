@@ -58,7 +58,7 @@ export default function OrderForm() {
     }
     const normalized = normalizePhone(phone);
     if (!normalized) {
-      errors.phone = 'Нужен белорусский мобильный номер, например +375 29 123-45-67.';
+      errors.phone = 'Номер указан неверно.';
     }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;

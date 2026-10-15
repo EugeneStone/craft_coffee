@@ -38,7 +38,7 @@ const bodySchema = z.object({
 
 const FIELD_MESSAGES: Record<string, string> = {
   name: 'Напишите, как к вам обращаться (2–80 знаков).',
-  phone: 'Проверьте номер телефона.',
+  phone: 'Номер указан неверно.',
   interest: 'Выберите, что вас интересует.',
   comment: 'Комментарий слишком длинный — до 1000 знаков.',
 };
@@ -84,8 +84,7 @@ leadRouter.post('/lead', leadLimiter, async (req, res) => {
       ok: false,
       error: 'validation',
       fields: {
-        phone:
-          'Похоже, это не белорусский мобильный номер. Нужен вид +375 29 123-45-67.',
+        phone: 'Номер указан неверно.',
       },
     });
   }
