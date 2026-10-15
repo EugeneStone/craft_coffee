@@ -5,6 +5,9 @@
 
 **Стек:** Next.js 15 (App Router, TypeScript, Tailwind 4) · Express · PostgreSQL
 
+**Живой сайт:** https://kvarta.vercel.app (форма и админка `/admin`, вход
+`admin` / `admin`) · **API:** https://kvarta-api.vercel.app
+
 ## Как запустить локально
 
 Нужен Node 20+ (разрабатывалось на 24–26).
