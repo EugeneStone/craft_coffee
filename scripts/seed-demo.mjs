@@ -167,6 +167,38 @@ const subscriptions = SUB_PLAN.map((plan, idx) => {
   return { lead, coffee: plan.coffee, status: plan.status, started_at: started };
 });
 
+// Бывает, что из сети провайдера закрыт порт 5432 наружу — тогда строку
+// подключения не используешь. `--sql` печатает те же данные готовым SQL:
+// его можно вставить в SQL-редактор Neon и выполнить там.
+if (process.argv.includes('--sql')) {
+  const q = (v) =>
+    v === null || v === undefined ? 'null' : `'${String(v).replace(/'/g, "''")}'`;
+  const out = [
+    "delete from subscriptions where lead_id in (select id from leads where utm_content = 'demo-seed');",
+    "delete from leads where utm_content = 'demo-seed';",
+  ];
+  for (const l of leads) {
+    const values = [
+      q(l.name), q(l.phone), q(l.interest), q(l.comment), q(l.status), q(l.source),
+      q(l.utm_source), q(l.utm_medium), q(l.utm_campaign), q(l.utm_content), q(l.utm_term),
+      q(l.referrer), q(l.page_url), `${q(l.created_at.toISOString())}::timestamptz`,
+    ].join(', ');
+    out.push(
+      `insert into leads (name, phone, interest, comment, status, source, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer, page_url, created_at) values (${values});`,
+    );
+  }
+  for (const s of subscriptions) {
+    out.push(
+      `insert into subscriptions (lead_id, name, phone, coffee, status, started_at) select id, name, phone, ${q(s.coffee)}, ${q(s.status)}, ${q(s.started_at.toISOString().slice(0, 10))}::date from leads where utm_content = 'demo-seed' and phone = ${q(s.lead.phone)};`,
+    );
+  }
+  // отдельными командами — SQL-редакторы обычно выполняют скрипт целиком
+  out.push('select count(*) as leads from leads;');
+  out.push('select count(*) as subscriptions from subscriptions;');
+  console.log(out.join('\n'));
+  process.exit(0);
+}
+
 const client = await pool.connect();
 try {
   await client.query('BEGIN');
