@@ -8,4 +8,11 @@ export const config = {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     chatId: process.env.TELEGRAM_CHAT_ID || '',
   },
+  admin: {
+    // для тестового запуска подойдёт дефолт; в проде задаём ADMIN_JWT_SECRET
+    jwtSecret: process.env.ADMIN_JWT_SECRET || 'kvarta-local-admin-secret',
+    cookieName: 'kvarta_admin',
+    tokenTtlSeconds: 7 * 24 * 60 * 60,
+  },
+  isProd: process.env.NODE_ENV === 'production',
 };

@@ -1,5 +1,7 @@
 import cors from 'cors';
 import express, { NextFunction, Request, Response } from 'express';
+import { adminRouter } from './routes/admin.js';
+import { catalogRouter } from './routes/catalog.js';
 import { leadRouter } from './routes/lead.js';
 
 export function createApp() {
@@ -16,6 +18,8 @@ export function createApp() {
   });
 
   app.use('/api', leadRouter);
+  app.use('/api', catalogRouter);
+  app.use('/api/admin', adminRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ ok: false, error: 'not_found' });
